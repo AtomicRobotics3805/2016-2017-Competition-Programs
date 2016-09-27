@@ -1,0 +1,81 @@
+package org.firstinspires.ftc.teamcode;
+
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.Servo;
+
+@TeleOp(name = "Mecanum Test")
+public class MecanumDrive extends OpMode {
+    DcMotor rightFront;
+    DcMotor rightBack;
+    DcMotor leftFront;
+    DcMotor leftBack;
+
+    Servo leftButtonServo;
+    Servo rightButtonServo;
+
+    @Override
+    public void init() {
+        rightFront = hardwareMap.dcMotor.get("RF");
+        rightBack = hardwareMap.dcMotor.get("RB");
+        leftFront = hardwareMap.dcMotor.get("LF");
+        leftBack = hardwareMap.dcMotor.get("LB");
+
+        leftButtonServo = hardwareMap.servo.get("LBS");
+        rightButtonServo = hardwareMap.servo.get("RBS");
+
+        leftButtonServo.setDirection(Servo.Direction.REVERSE);
+
+        rightFront.setDirection(DcMotor.Direction.REVERSE);
+        rightBack.setDirection(DcMotor.Direction.REVERSE);
+    }
+
+    @Override
+    public void loop() {
+        double Y1 = -gamepad1.left_stick_y; //Forwards/Backwards
+        double X1 = gamepad1.left_stick_x; //Left/Right
+        double X2 = gamepad1.right_stick_x; //Rotate
+
+        rightFront.setPower(Y1 - X2 - X1);
+        rightBack.setPower(Y1 - X2 + X1);
+        leftFront.setPower(Y1 + X2 + X1);
+        leftBack.setPower(Y1 + X2 - X1);
+
+        if (gamepad1.left_bumper) {
+            leftButtonServo.setPosition(1);
+        } else {
+            leftButtonServo.setPosition(0);
+        }
+
+        if (gamepad1.right_bumper) {
+            rightButtonServo.setPosition(1);
+        } else {
+            rightButtonServo.setPosition(0);
+        }
+
+        telemetry.addData("Left stick angle", convertStickToAngle(X1, Y1));
+    }
+
+    public double convertStickToAngle(double X, double Y) {
+        if (X != 0 || Y != 0) {
+            double output = Math.toDegrees(Math.atan2(Math.abs(Y), Math.abs(X)));
+            if (X < 0) {
+                output = 180 - output;
+            }
+            if (Y < 0) {
+                output = 180 - output + 180;
+            }
+            //'Rotate' the output angle 90 degrees CCW
+            output -= 90;
+            if (output < 0) {
+                output += 360;
+            } else if (output > 360) {
+                output -= 360;
+            }
+            return output;
+        } else {
+            return 0;
+        }
+    }
+}
