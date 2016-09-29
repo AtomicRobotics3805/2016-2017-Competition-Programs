@@ -1,9 +1,11 @@
-package org.firstinspires.ftc.teamcode;
 
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.Servo;
+        package org.firstinspires.ftc.teamcode;
+
+        import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+        import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+        import com.qualcomm.robotcore.hardware.DcMotor;
+        import com.qualcomm.robotcore.hardware.DcMotorSimple;
+        import com.qualcomm.robotcore.hardware.Servo;
 
 @TeleOp(name = "Mecanum Test")
 public class MecanumDrive extends OpMode {
@@ -11,6 +13,9 @@ public class MecanumDrive extends OpMode {
     DcMotor rightBack;
     DcMotor leftFront;
     DcMotor leftBack;
+    DcMotor launcher;
+    DcMotor liftLeft;
+    DcMotor liftRight;
 
     Servo leftButtonServo;
     Servo rightButtonServo;
@@ -21,12 +26,16 @@ public class MecanumDrive extends OpMode {
         rightBack = hardwareMap.dcMotor.get("RB");
         leftFront = hardwareMap.dcMotor.get("LF");
         leftBack = hardwareMap.dcMotor.get("LB");
+        launcher = hardwareMap.dcMotor.get("LER");
+        liftLeft = hardwareMap.dcMotor.get("LL");
+        liftRight = hardwareMap.dcMotor.get("LR");
 
         leftButtonServo = hardwareMap.servo.get("LBS");
         rightButtonServo = hardwareMap.servo.get("RBS");
 
         leftButtonServo.setDirection(Servo.Direction.REVERSE);
 
+        liftLeft.setDirection(DcMotor.Direction.REVERSE);
         rightFront.setDirection(DcMotor.Direction.REVERSE);
         rightBack.setDirection(DcMotor.Direction.REVERSE);
     }
@@ -52,6 +61,20 @@ public class MecanumDrive extends OpMode {
             rightButtonServo.setPosition(1);
         } else {
             rightButtonServo.setPosition(0);
+        }
+
+        launcher.setPower(gamepad1.right_trigger);
+
+        if (gamepad1.dpad_left) {
+            liftLeft.setPower(0.5);
+        } else {
+            liftLeft.setPower(0);
+        }
+
+        if (gamepad1.dpad_right) {
+            liftRight.setPower(0.5);
+        } else {
+            liftRight.setPower(0.5);
         }
 
         telemetry.addData("Left stick angle", convertStickToAngle(X1, Y1));
