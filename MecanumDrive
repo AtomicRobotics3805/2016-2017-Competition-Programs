@@ -26,9 +26,9 @@ public class MecanumDrive extends OpMode {
         rightBack = hardwareMap.dcMotor.get("RB");
         leftFront = hardwareMap.dcMotor.get("LF");
         leftBack = hardwareMap.dcMotor.get("LB");
-        launcher = hardwareMap.dcMotor.get("LER");
-        liftLeft = hardwareMap.dcMotor.get("LL");
-        liftRight = hardwareMap.dcMotor.get("LR");
+        launcher = hardwareMap.dcMotor.get("SM");
+        liftLeft = hardwareMap.dcMotor.get("RLM");
+        liftRight = hardwareMap.dcMotor.get("LLM");
 
         leftButtonServo = hardwareMap.servo.get("LBS");
         rightButtonServo = hardwareMap.servo.get("RBS");
@@ -65,16 +65,20 @@ public class MecanumDrive extends OpMode {
 
         launcher.setPower(gamepad1.right_trigger);
 
-        if (gamepad1.dpad_left) {
+        if (gamepad1.dpad_up) {
             liftLeft.setPower(0.5);
+            liftRight.setPower(0.5);
         } else {
             liftLeft.setPower(0);
+            liftRight.setPower(0);
         }
 
-        if (gamepad1.dpad_right) {
-            liftRight.setPower(0.5);
+        if (gamepad1.dpad_down) {
+            liftLeft.setPower(-0.5);
+            liftRight.setPower(-0.5);
         } else {
-            liftRight.setPower(0.5);
+            liftLeft.setPower(0);
+            liftRight.setPower(0);
         }
 
         telemetry.addData("Left stick angle", convertStickToAngle(X1, Y1));
