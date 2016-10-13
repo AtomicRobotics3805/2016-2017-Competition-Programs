@@ -1,108 +1,231 @@
+package org.firstinspires.ftc.teamcode;
 
-        package org.firstinspires.ftc.teamcode;
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.hardware.AnalogInput;
+import com.qualcomm.robotcore.hardware.ColorSensor;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DeviceInterfaceModule;
+import com.qualcomm.robotcore.hardware.LightSensor;
+import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.util.Range;
 
-        import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-        import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-        import com.qualcomm.robotcore.hardware.DcMotor;
-        import com.qualcomm.robotcore.hardware.DcMotorSimple;
-        import com.qualcomm.robotcore.hardware.Servo;
 
-@TeleOp(name = "Mecanum Test")
-public class MecanumDrive extends OpMode {
+@Autonomous(name = "Mecanum Autonomous")
+//@Disabled
+public class AutonomousProgramLeaguePlay extends OpMode {
+    navigationMecanumPID testNavigator;
     DcMotor rightFront;
     DcMotor rightBack;
     DcMotor leftFront;
     DcMotor leftBack;
-    DcMotor launcher;
-    DcMotor liftLeft;
-    DcMotor liftRight;
 
-    Servo leftButtonServo;
-    Servo rightButtonServo;
+    DcMotor shooterMotor;
+
+    LightSensor lineLightSensor;
+    ColorSensor beaconColorSensor;
+    AnalogInput ultrasonicSensor;
+
+    Servo rightBeaconServo;
+    Servo leftBeaconServo;
+
+    DeviceInterfaceModule DIM;
+
+    //1: 1 = moveForward, 2 = moveBackward, 3 = rotateCW, 4 = rotateCCW, 5 = moveLeft, 6 = moveRight, 10 = end navigation, anything else will pause the program until forceNextMovement() is called
+    //2: Tp: the speed at which the robot goes when moving in the correct direction.
+    //3: Either the wanted angle, or the goal distance in inches.
+    double[][] movementArray = new double[][]{
+           //_,______,______}
+            {1,   0.5,    6},
+            {3,   0.5,    45},
+            {1,   0.5,    48},
+            {3,   0.5,    60},
+            {11,    0,     0}, //Score the beacons
+            {10,    0,     0} //Stop all movements
+    };
+
+    //Variables for line follower
+    double integral;
+    double setPoint;
+    double preError;
+    double Kp;
+    double Ki;
+    double Kd;
+    double Tp;
+
+    //State Machine variables
+    int mainProgramStep = 0;
+    int scoreBeaconsStep = 0;
 
     @Override
     public void init() {
+        //Motors
         rightFront = hardwareMap.dcMotor.get("RF");
         rightBack = hardwareMap.dcMotor.get("RB");
         leftFront = hardwareMap.dcMotor.get("LF");
         leftBack = hardwareMap.dcMotor.get("LB");
-        launcher = hardwareMap.dcMotor.get("SM");
-        liftLeft = hardwareMap.dcMotor.get("RLM");
-        liftRight = hardwareMap.dcMotor.get("LLM");
 
-        leftButtonServo = hardwareMap.servo.get("LBS");
-        rightButtonServo = hardwareMap.servo.get("RBS");
+        shooterMotor = hardwareMap.dcMotor.get("SM");
 
-        leftButtonServo.setDirection(Servo.Direction.REVERSE);
-
-        liftLeft.setDirection(DcMotor.Direction.REVERSE);
         rightFront.setDirection(DcMotor.Direction.REVERSE);
         rightBack.setDirection(DcMotor.Direction.REVERSE);
+
+        //Sensors
+        lineLightSensor = hardwareMap.lightSensor.get("LS");
+        beaconColorSensor = hardwareMap.colorSensor.get("CS");
+        ultrasonicSensor = hardwareMap.analogInput.get("US");
+
+        beaconColorSensor.enableLed(false);
+        lineLightSensor.enableLed(true);
+
+        //Servos
+        rightBeaconServo = hardwareMap.servo.get("RBS");
+        leftBeaconServo = hardwareMap.servo.get("LBS");
+
+        //IMU navigation
+        testNavigator = new navigationMecanumPID(movementArray, this, "AG", leftFront, rightFront, leftBack, rightBack, 1120, 4);
+        testNavigator.tuneGains(0.01, 0, 0.02);
+
+        //Device Interface Module
+        DIM = hardwareMap.deviceInterfaceModule.get("Device Interface Module");
+
+        telemetry.addData(">", "Pres start when ready...");
+
+        //Set the motor modes
+        //Reset
+        resetDriveEncoders();
+        resetEncoder(shooterMotor);
+        //Set main mode
+        runWithoutDriveEncoders();
+        runWithoutEncoder(shooterMotor);
+    }
+
+    @Override
+    public void start() {
+        testNavigator.initialize();
     }
 
     @Override
     public void loop() {
-        double Y1 = -gamepad1.left_stick_y; //Forwards/Backwards
-        double X1 = gamepad1.left_stick_x; //Left/Right
-        double X2 = gamepad1.right_stick_x; //Rotate
-
-        rightFront.setPower(Y1 - X2 - X1);
-        rightBack.setPower(Y1 - X2 + X1);
-        leftFront.setPower(Y1 + X2 + X1);
-        leftBack.setPower(Y1 + X2 - X1);
-
-        if (gamepad1.left_bumper) {
-            leftButtonServo.setPosition(1);
-        } else {
-            leftButtonServo.setPosition(0);
+        switch (mainProgramStep) {
+            case 0: //Shoot
+                if (shooterMotor.getCurrentPosition() >= 1680) { //1680 is 1 rev of NeverRest 60
+                    shooterMotor.setPower(0);
+                    mainProgramStep++;
+                } else {
+                    telemetry.addData(">>", "Shooting");
+                    shooterMotor.setPower(1);
+                }
+                break;
+            case 1: //Navigate
+                if (testNavigator.navigationType() == 11) {
+                    mainProgramStep++;
+                } else {
+                    telemetry.addData(">>", "Navigating");
+                    telemetry.addData("Type", testNavigator.navigationType());
+                    testNavigator.loopNavigation();
+                }
+                break;
+            case 2: //Score the beacons
+                telemetry.addData(">>", "Beacons");
+                switch (scoreBeaconsStep) {
+                    case 0: //Approach and prepare for line follow line
+                        double lightDetected = lineLightSensor.getLightDetected();
+                        if (lightDetected < 0.5) { //If detected white line
+                            scoreBeaconsStep++;
+                        } else {
+                            telemetry.addData(">>>", "Waiting for line");
+                            leftFront.setPower(0.25);
+                            leftBack.setPower(0.25);
+                            rightFront.setPower(0.25);
+                            rightBack.setPower(0.25);
+                            //testNavigator.moveNoStop(0.25, 0); //Move forwards at 25% power
+                        }
+                        break;
+                    case 1: //Follow line
+                        if (ultrasonicSensor.getVoltage() * 1000 < 25) {
+                            scoreBeacon();
+                            scoreBeaconsStep++;
+                        } else {
+                            telemetry.addData(">>>", "Following line");
+                            lineFollow();
+                        }
+                        break;
+                    case 2:
+                        mainProgramStep++;
+                        break;
+                }
         }
-
-        if (gamepad1.right_bumper) {
-            rightButtonServo.setPosition(1);
-        } else {
-            rightButtonServo.setPosition(0);
-        }
-
-        launcher.setPower(gamepad1.right_trigger);
-
-        if (gamepad1.dpad_up) {
-            liftLeft.setPower(0.5);
-            liftRight.setPower(0.5);
-        } else {
-            liftLeft.setPower(0);
-            liftRight.setPower(0);
-        }
-
-        if (gamepad1.dpad_down) {
-            liftLeft.setPower(-0.5);
-            liftRight.setPower(-0.5);
-        } else {
-            liftLeft.setPower(0);
-            liftRight.setPower(0);
-        }
-
-        telemetry.addData("Left stick angle", convertStickToAngle(X1, Y1));
     }
 
-    public double convertStickToAngle(double X, double Y) {
-        if (X != 0 || Y != 0) {
-            double output = Math.toDegrees(Math.atan2(Math.abs(Y), Math.abs(X)));
-            if (X < 0) {
-                output = 180 - output;
-            }
-            if (Y < 0) {
-                output = 180 - output + 180;
-            }
-            //'Rotate' the output angle 90 degrees CCW
-            output -= 90;
-            if (output < 0) {
-                output += 360;
-            } else if (output > 360) {
-                output -= 360;
-            }
-            return output;
+    public void scoreBeacon() {
+        telemetry.addData("Color", "RGB: %1$s, %2$s, %3$s", beaconColorSensor.red(), beaconColorSensor.green(), beaconColorSensor.blue());
+
+        if (beaconColorSensor.red() > beaconColorSensor.blue() && beaconColorSensor.red() > beaconColorSensor.green()) {
+            DIM.setLED(1, true);           //Red ON
+            DIM.setLED(0, false);          //Blue OFF
+            leftBeaconServo.setPosition(0);
+            rightBeaconServo.setPosition(1);
+            telemetry.addData("Beacon", "RED");
+        } else if (beaconColorSensor.blue() > beaconColorSensor.red() && beaconColorSensor.blue() > beaconColorSensor.green()) {
+            DIM.setLED(1, false);          //Red OFF
+            DIM.setLED(0, true);           //Blue ON
+            leftBeaconServo.setPosition(1);
+            rightBeaconServo.setPosition(0);
+            telemetry.addData("Beacon", "BLUE");
         } else {
-            return 0;
+            DIM.setLED(1, false);           //Red OFF
+            DIM.setLED(0, false);           //Blue OFF
+            leftBeaconServo.setPosition(0);
+            rightBeaconServo.setPosition(0);
+            telemetry.addData("Beacon", "Not Detected");
         }
+    }
+
+    public void lineFollow() {
+        double error = -setPoint;
+        integral += error;
+        double derivative = error - preError;
+        double output = (Kp * error) + (Ki * integral) + (Kd * derivative);
+
+        double leftOut = Range.clip(Tp + output, -0.5, 0.5);
+        double rightOut = Range.clip(Tp - output, -0.5, 0.5);
+
+        leftFront.setPower(leftOut);
+        leftBack.setPower(leftOut);
+        rightFront.setPower(rightOut);
+        rightBack.setPower(rightOut);
+        preError = error;
+    }
+
+    public void resetEncoder(DcMotor motor) {
+        motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+    }
+
+    public void runWithoutEncoder(DcMotor motor) {
+        motor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+    }
+
+    public void runToPosition(DcMotor motor) {
+        motor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+    }
+
+    public void runUsingEncoder(DcMotor motor) {
+        motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    }
+
+    public void resetDriveEncoders() {
+        resetEncoder(leftFront);
+        resetEncoder(rightFront);
+        resetEncoder(leftBack);
+        resetEncoder(rightBack);
+    }
+
+    public void runWithoutDriveEncoders() {
+        runWithoutEncoder(leftFront);
+        runWithoutEncoder(rightFront);
+        runWithoutEncoder(leftBack);
+        runWithoutEncoder(rightBack);
     }
 }
