@@ -47,7 +47,7 @@ public class MecanumDrive extends OpMode {
 
     @Override
     public void loop() {
-        double Y1 = -gamepad1.left_stick_y; //Forwards/Backwards
+        double Y1 = gamepad1.left_stick_y; //Forwards/Backwards
         double X1 = gamepad1.left_stick_x; //Left/Right
         double X2 = gamepad1.right_stick_x; //Rotate
 
