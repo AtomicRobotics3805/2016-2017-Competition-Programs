@@ -19,6 +19,9 @@ public class MecanumDrive extends OpMode {
     Servo leftButtonServo;
     Servo rightButtonServo;
 
+    Boolean powerLevel = false;
+    double powerControl = 1.0;
+
     @Override
     public void init() {
         rightFront = hardwareMap.dcMotor.get("RF");
@@ -47,9 +50,10 @@ public class MecanumDrive extends OpMode {
 
     @Override
     public void loop() {
-        double Y1 = gamepad1.left_stick_y; //Forwards/Backwards
-        double X1 = gamepad1.left_stick_x; //Left/Right
-        double X2 = gamepad1.right_stick_x; //Rotate
+
+        double Y1 = gamepad1.left_stick_y / powerControl; //Forwards/Backwards
+        double X1 = gamepad1.left_stick_x / powerControl; //Left/Right
+        double X2 = gamepad1.right_stick_x / powerControl; //Rotate
 
         rightFront.setPower(Y1 - X2 - X1);
         rightBack.setPower(Y1 - X2 + X1);
@@ -67,6 +71,15 @@ public class MecanumDrive extends OpMode {
         } else {
             rightButtonServo.setPosition(0);
         }
+
+        if ((gamepad1.left_trigger + gamepad1.right_trigger) >= 1.5) {
+            powerLevel = !powerLevel;
+        } else if (powerLevel) {
+            powerControl = .5;
+        } else if (powerLevel == false) {
+            powerControl = 1.0;
+        }
+
 
         launcher.setPower(gamepad1.right_trigger);
 
