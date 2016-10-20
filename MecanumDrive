@@ -19,7 +19,9 @@ public class MecanumDrive extends OpMode {
     Servo leftButtonServo;
     Servo rightButtonServo;
 
-    Boolean powerLevel = false;
+    double scaleFactor = 1.0;
+    boolean slowMode;
+    boolean lastx;
     double powerControl = 1.0;
 
     @Override
@@ -51,9 +53,18 @@ public class MecanumDrive extends OpMode {
     @Override
     public void loop() {
 
-        double Y1 = gamepad1.left_stick_y / powerControl; //Forwards/Backwards
-        double X1 = gamepad1.left_stick_x / powerControl; //Left/Right
-        double X2 = gamepad1.right_stick_x / powerControl; //Rotate
+        if (gamepad1.x && !lastx) {
+             slowMode =  !slowMode;
+        }
+        if  (slowMode) {
+            scaleFactor = 0.25;
+        } else {
+            scaleFactor = 1.0;
+        }
+
+        double Y1 = gamepad1.left_stick_y * scaleFactor; //Forwards/Backwards
+        double X1 = gamepad1.left_stick_x * scaleFactor; //Left/Right
+        double X2 = gamepad1.right_stick_x * scaleFactor; //Rotate
 
         rightFront.setPower(Y1 - X2 - X1);
         rightBack.setPower(Y1 - X2 + X1);
@@ -72,14 +83,6 @@ public class MecanumDrive extends OpMode {
             rightButtonServo.setPosition(0);
         }
 
-        if ((gamepad1.left_trigger + gamepad1.right_trigger) >= 1.5) {
-            powerLevel = !powerLevel;
-        } else if (powerLevel) {
-            powerControl = .5;
-        } else if (powerLevel == false) {
-            powerControl = 1.0;
-        }
-
 
         launcher.setPower(gamepad1.right_trigger);
 
@@ -93,6 +96,8 @@ public class MecanumDrive extends OpMode {
             liftLeft.setPower(0);
             liftRight.setPower(0);
         }
+
+        lastx = gamepad1.x;
 
         telemetry.addData("Left stick angle", convertStickToAngle(X1, Y1));
     }
@@ -119,3 +124,4 @@ public class MecanumDrive extends OpMode {
         }
     }
 }
+      
