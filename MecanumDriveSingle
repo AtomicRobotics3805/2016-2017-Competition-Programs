@@ -6,8 +6,8 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Servo;
 
-@TeleOp(name = "Mecanum Test Solitary")
-public class MecanumDriveSingle extends OpMode {
+@TeleOp(name = "Mecanum Single")
+public class MecanumDriveTest extends OpMode {
     DcMotor rightFront;
     DcMotor rightBack;
     DcMotor leftFront;
@@ -19,10 +19,9 @@ public class MecanumDriveSingle extends OpMode {
     Servo leftButtonServo;
     Servo rightButtonServo;
 
-    double scaleFactor = 1.0;
+    boolean lastX;
     boolean slowMode;
-    boolean lastx;
-    double powerControl = 1.0;
+    double scaleFactor = 1;
 
     @Override
     public void init() {
@@ -52,16 +51,15 @@ public class MecanumDriveSingle extends OpMode {
 
     @Override
     public void loop() {
-    
-    if (gamepad1.x && !lastx) {
-             slowMode =  !slowMode;
-        }
-        if  (slowMode) {
-            scaleFactor = 0.25;
-        } else {
-            scaleFactor = 1.0;
+        if (gamepad1.x && !lastX) {
+            slowMode = !slowMode;
         }
 
+        if (slowMode) {
+            scaleFactor = 0.5;
+        } else {
+            scaleFactor = 1;
+        }
         double Y1 = gamepad1.left_stick_y * scaleFactor; //Forwards/Backwards
         double X1 = -gamepad1.left_stick_x * scaleFactor; //Left/Right
         double X2 = gamepad1.right_stick_x * scaleFactor; //Rotate
@@ -95,6 +93,8 @@ public class MecanumDriveSingle extends OpMode {
             liftLeft.setPower(0);
             liftRight.setPower(0);
         }
+
+        lastX = gamepad1.x;
 
         telemetry.addData("Left stick angle", convertStickToAngle(X1, Y1));
     }
