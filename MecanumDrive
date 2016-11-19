@@ -1,4 +1,3 @@
-
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
@@ -6,7 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Servo;
 
-@TeleOp(name = "Mecanum Test")
+@TeleOp(name = "TeleOp")
 public class MecanumDrive extends OpMode {
     DcMotor rightFront;
     DcMotor rightBack;
@@ -18,10 +17,17 @@ public class MecanumDrive extends OpMode {
 
     Servo leftButtonServo;
     Servo rightButtonServo;
+    Servo particleServo;
+    Servo forkReleaseServo;
+
 
     boolean lastX;
     boolean slowMode;
     double scaleFactor = 1;
+
+    boolean lastY;
+    boolean liftOffsetEnabled;
+
 
     @Override
     public void init() {
@@ -42,6 +48,9 @@ public class MecanumDrive extends OpMode {
         leftButtonServo = hardwareMap.servo.get("LBS");
         rightButtonServo = hardwareMap.servo.get("RBS");
 
+        particleServo = hardwareMap.servo.get("PS");
+        forkReleaseServo = hardwareMap.servo.get("FRS");
+
         leftButtonServo.setDirection(Servo.Direction.REVERSE);
 
         liftLeft.setDirection(DcMotor.Direction.REVERSE);
@@ -51,6 +60,7 @@ public class MecanumDrive extends OpMode {
 
     @Override
     public void loop() {
+        //Drive
         if (gamepad1.x && !lastX) {
             slowMode = !slowMode;
         }
@@ -69,6 +79,7 @@ public class MecanumDrive extends OpMode {
         leftFront.setPower(Y1 + X2 + X1);
         leftBack.setPower(Y1 + X2 - X1);
 
+        //Button Servos
         if (gamepad2.left_trigger > 0.5) {
             leftButtonServo.setPosition(1);
         } else {
@@ -81,43 +92,29 @@ public class MecanumDrive extends OpMode {
             rightButtonServo.setPosition(0);
         }
 
-        launcher.setPower(gamepad1.right_trigger);
+        //Launcher
+        launcher.setPower(gamepad1.right_trigger-(gamepad1.left_trigger/10));
 
-        if (gamepad2.dpad_up) {
-            liftLeft.setPower(0.5);
-            liftRight.setPower(0.5);
-        } else if (gamepad2.dpad_down) {
-            liftLeft.setPower(-0.5);
-            liftRight.setPower(-0.5);
-        } else {
-            liftLeft.setPower(0);
-            liftRight.setPower(0);
+        //Lift
+        int liftPosMain = (liftLeft.getCurrentPosition() + liftRight.getCurrentPosition()) / 2;
+        telemetry.addData("Lift value", liftPosMain);
+
+        if (gamepad2.y && !lastY) {
+            liftOffsetEnabled = !liftOffsetEnabled;
         }
+
+        double liftMainSpeed = liftPosMain >= 6480 ? 0 : 0.5;
+
+        liftLeft.setPower(((gamepad2.dpad_up ? liftMainSpeed : 0) - (gamepad2.dpad_down ? 0.5 : 0)) - (liftOffsetEnabled ? gamepad2.left_stick_y : 0));
+        liftRight.setPower(((gamepad2.dpad_up ? liftMainSpeed : 0) - (gamepad2.dpad_down ? 0.5 : 0)) - (liftOffsetEnabled ? gamepad2.right_stick_y : 0));
+
+        //Forklift release
+        forkReleaseServo.setPosition(gamepad2.a ? 1 : 0);
+
+        //Extra particle
+        particleServo.setPosition(gamepad2.b ? 0.9 : 0);
 
         lastX = gamepad1.x;
-
-        telemetry.addData("Left stick angle", convertStickToAngle(X1, Y1));
-    }
-
-    public double convertStickToAngle(double X, double Y) {
-        if (X != 0 || Y != 0) {
-            double output = Math.toDegrees(Math.atan2(Math.abs(Y), Math.abs(X)));
-            if (X < 0) {
-                output = 180 - output;
-            }
-            if (Y < 0) {
-                output = 180 - output + 180;
-            }
-            //'Rotate' the output angle 90 degrees CCW
-            output -= 90;
-            if (output < 0) {
-                output += 360;
-            } else if (output > 360) {
-                output -= 360;
-            }
-            return output;
-        } else {
-            return 0;
-        }
+        lastY = gamepad2.y;
     }
 }
