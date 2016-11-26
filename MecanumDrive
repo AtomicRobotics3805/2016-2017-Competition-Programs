@@ -20,7 +20,6 @@ public class MecanumDrive extends OpMode {
     Servo particleServo;
     Servo forkReleaseServo;
 
-
     boolean lastX;
     boolean slowMode;
     double scaleFactor = 1;
