@@ -13,30 +13,32 @@ import com.qualcomm.robotcore.util.Range;
 import org.firstinspires.ftc.teamcode.navigationMecanumPID;
 
 
-@Autonomous(name = "BLUE autonomous")
+@Autonomous(name = "BLUE autonomous 2")
 //@Disabled
-public class BLUE_AutonomousProgramLeaguePlay_V3 extends OpMode {
-    navigationMecanumPID testNavigator;
-    DcMotor rightFront;
-    DcMotor rightBack;
-    DcMotor leftFront;
-    DcMotor leftBack;
+public class BLUE_AutonomousProgramLeaguePlay_V4 extends OpMode {
+    private navigationMecanumPID testNavigator;
+    private DcMotor rightFront;
+    private DcMotor rightBack;
+    private DcMotor leftFront;
+    private DcMotor leftBack;
 
-    DcMotor shooterMotor;
+    private DcMotor shooterMotor;
 
-    LightSensor lineLightSensor;
-    ColorSensor beaconColorSensor;
-    AnalogInput sharpIR;
+    private LightSensor lineLightSensor;
+    private ColorSensor beaconColorSensor;
+    private AnalogInput sharpIR;
 
-    Servo rightBeaconServo;
-    Servo leftBeaconServo;
+    private Servo rightBeaconServo;
+    private Servo leftBeaconServo;
+    private Servo particleServo;
+    private Servo forkReleaseServo;
 
-    DeviceInterfaceModule DIM;
+    private DeviceInterfaceModule DIM;
 
     //1: 1 = moveForward, 2 = moveBackward, 3 = rotateCW, 4 = rotateCCW, 5 = moveLeft, 6 = moveRight, 10 = end navigation, anything else will pause the program until forceNextMovement() is called
     //2: Tp: the speed at which the robot goes when moving in the correct direction.
     //3: Either the wanted angle, or the goal distance in inches.
-    double[][] movementArray = new double[][]{
+    private double[][] movementArray = new double[][]{
             //_,______,______}
             {11,    0,     0}, //Shoot
             {1,   0.5,     9}, //Move forwards
@@ -45,28 +47,25 @@ public class BLUE_AutonomousProgramLeaguePlay_V3 extends OpMode {
             {12,    0,     0}, //Approach line
             {4,  -0.5,   -90}, //Turn towards beacon
             {13,    0,     0}, //Slide to beacon and score
-            {2,  -0.5,   -36},
-            {4,  -0.5,   -36},
-            {2,  -0.5,   -36},
-            {4,  -0.5,     0},
-            {1,   0.5,    36},
             {10,    0,     0} //Stop all movements
     };
 
     //Variables for line follower
-    double integral;
-    double setPoint = 0.35;
-    double preError;
-    double Kp = 0.75;
-    double Ki = 0.0003;
-    double Kd = 0;
-    double Tp = 0.1;
+    private double integral;
+    private double setPoint = 0.35;
+    private double preError;
+    private double Kp = 0.75;
+    private double Ki = 0.0003;
+    private double Kd = 0;
+    private double Tp = 0.1;
 
     //State Machine variables
-    int mainProgramStep = 0;
-    int scoreBeaconsStep = 0;
+    private int mainProgramStep = 0;
+    private int scoreBeaconsStep = 0;
+    private int shootStep = 0;
 
-    int iLoop = 0;
+    private int iLoop = 0;
+    private int particleReloadStep = 0;
 
     @Override
     public void init() {
@@ -93,14 +92,20 @@ public class BLUE_AutonomousProgramLeaguePlay_V3 extends OpMode {
         rightBeaconServo = hardwareMap.servo.get("RBS");
         leftBeaconServo = hardwareMap.servo.get("LBS");
 
+        particleServo = hardwareMap.servo.get("PS");
+        forkReleaseServo = hardwareMap.servo.get("FRS");
+
         leftBeaconServo.setDirection(Servo.Direction.REVERSE);
 
         leftBeaconServo.setPosition(0);
         rightBeaconServo.setPosition(0);
 
+        particleServo.setPosition(0);
+        forkReleaseServo.setPosition(0);
+
         //IMU navigation
         testNavigator = new navigationMecanumPID(movementArray, this, "AG", leftFront, rightFront, leftBack, rightBack, 1120, 4);
-        testNavigator.tuneGains(0.015, 0.00001, 0.02);
+        testNavigator.tuneGains(0.01, 0.00001, 0.02);
 
         //Device Interface Module
         DIM = hardwareMap.deviceInterfaceModule.get("Device Interface Module");
@@ -125,13 +130,74 @@ public class BLUE_AutonomousProgramLeaguePlay_V3 extends OpMode {
     public void loop() {
         switch (mainProgramStep) {
             case 0: //Shoot
-                if (shooterMotor.getCurrentPosition() >= 1680) { //1680 is 1 rev of NeverRest 60
-                    shooterMotor.setPower(0);
-                    testNavigator.forceNextMovement();
-                    mainProgramStep++;
-                } else {
-                    telemetry.addData(">>", "Shooting");
-                    shooterMotor.setPower(1);
+                switch (shootStep) {
+                    case 0: //Shoot first particle
+                        if (shooterMotor.getCurrentPosition() >= 1680) { //1680 is 1 rev of a NeverRest 60
+                            shooterMotor.setPower(0);
+                            shootStep++;
+                        } else {
+                            shooterMotor.setPower(1);
+                        }
+                        break;
+                    case 1: //Load second particle
+                        switch (particleReloadStep) {
+                            case 0: //Move particle to shooter
+                                if (iLoop < 100) { //Loop for timing
+                                    //Hold servo out
+                                    particleServo.setPosition(0.9);
+                                    iLoop++;
+                                } else {
+                                    iLoop = 0;
+                                    particleReloadStep++;
+                                }
+                                break;
+                            case 1: //Reverse shooter to guard ball
+                                if (shooterMotor.getCurrentPosition() > 800) { //If the shooter has not yet reached its goal position, or if the timer still has time
+                                    shooterMotor.setPower(-0.1);
+                                    iLoop++;
+                                } else {
+                                    //Stop motor for launcher
+                                    shooterMotor.setPower(0);
+                                    iLoop = 0;
+                                    particleReloadStep++;
+                                }
+                                break;
+                            case 2: //Move arm back to home position
+                                if (iLoop < 100) { //Loop for timing
+                                    //Return servo to home
+                                    particleServo.setPosition(0);
+                                    iLoop++;
+                                } else {
+                                    iLoop = 0;
+                                    particleReloadStep++;
+                                }
+                                break;
+                            case 3: //Squeeze ball
+                                if (iLoop < 100) { //Loop for timing
+                                    shooterMotor.setPower(-0.1);
+                                    iLoop++;
+                                } else {
+                                    iLoop = 0;
+                                    particleReloadStep++;
+                                }
+                                break;
+                            case 4:
+                                shootStep++;
+                                break;
+                        }
+                        break;
+                    case 2: //Shoot second particle
+                        if (shooterMotor.getCurrentPosition() >= 3360) { //3360 is 2 revs of a NeverRest 60
+                            shooterMotor.setPower(0);
+                            shootStep++;
+                        } else {
+                            shooterMotor.setPower(1);
+                        }
+                        break;
+                    case 3: //Move on to navigation
+                        testNavigator.forceNextMovement();
+                        mainProgramStep++;
+                        break;
                 }
                 break;
             case 1: //Navigate
@@ -211,7 +277,7 @@ public class BLUE_AutonomousProgramLeaguePlay_V3 extends OpMode {
         }
     }
 
-    public short scoreBeacon() {
+    private short scoreBeacon() {
         telemetry.addData("Color", "RGB: %1$s, %2$s, %3$s", beaconColorSensor.red(), beaconColorSensor.green(), beaconColorSensor.blue());
 
         if (beaconColorSensor.red() > beaconColorSensor.blue() && beaconColorSensor.red() > beaconColorSensor.green()) {
@@ -238,7 +304,7 @@ public class BLUE_AutonomousProgramLeaguePlay_V3 extends OpMode {
         }
     }
 
-    public void lineFollow() {
+    private void lineFollow() {
         double error = lineLightSensor.getLightDetected() - setPoint;
         integral += error;
         double derivative = error - preError;
@@ -255,30 +321,30 @@ public class BLUE_AutonomousProgramLeaguePlay_V3 extends OpMode {
         preError = error;
     }
 
-    public void resetEncoder(DcMotor motor) {
+    private void resetEncoder(DcMotor motor) {
         motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
     }
 
-    public void runWithoutEncoder(DcMotor motor) {
+    private void runWithoutEncoder(DcMotor motor) {
         motor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
     }
 
-    public void runToPosition(DcMotor motor) {
+    private void runToPosition(DcMotor motor) {
         motor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
     }
 
-    public void runUsingEncoder(DcMotor motor) {
+    private void runUsingEncoder(DcMotor motor) {
         motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
 
-    public void resetDriveEncoders() {
+    private void resetDriveEncoders() {
         resetEncoder(leftFront);
         resetEncoder(rightFront);
         resetEncoder(leftBack);
         resetEncoder(rightBack);
     }
 
-    public void runWithoutDriveEncoders() {
+    private void runWithoutDriveEncoders() {
         runWithoutEncoder(leftFront);
         runWithoutEncoder(rightFront);
         runWithoutEncoder(leftBack);
