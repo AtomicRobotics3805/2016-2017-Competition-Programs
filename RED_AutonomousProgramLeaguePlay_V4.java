@@ -47,6 +47,9 @@ public class RED_AutonomousProgramLeaguePlay_V4 extends OpMode {
             {12,    0,     0}, //Approach line
             {3,   0.5,    90}, //Turn towards beacon
             {13,    0,     0}, //Slide to beacon and score
+            {2,  -0.5,   -24}, //Back up one foot
+            {4,  -0.5,     0}, //Turn towards 2nd beacon
+            {1,   0.5,    40}, //Move forwards 40 inches
             {10,    0,     0} //Stop all movements
     };
 
@@ -244,12 +247,28 @@ public class RED_AutonomousProgramLeaguePlay_V4 extends OpMode {
                         }
                         break;
                     case 1: //Follow line
+                        telemetry.addData("Case", scoreBeaconsStep);
                         double distanceIR = 27.86 * Math.pow(sharpIR.getVoltage(), -1.15);
-                        if (distanceIR <= 15) {
-                            testNavigator.moveNoStop(0.2, 0);
-
+                        if (distanceIR <= 11) {
                             if (iLoop < 250) { //Loop to allow the servos enough time, as well as detect the color
                                 //Hold the servo out dependant on the color
+                                switch (scoreBeacon()) {
+                                    case 0:
+                                        leftBeaconServo.setPosition(0);
+                                        rightBeaconServo.setPosition(0);
+                                        testNavigator.moveNoStop(0.3, 0);
+                                        break;
+                                    case 1:
+                                        leftBeaconServo.setPosition(0);
+                                        rightBeaconServo.setPosition(1);
+                                        tankDrive(0, 0.3);
+                                        break;
+                                    case 2:
+                                        leftBeaconServo.setPosition(1);
+                                        rightBeaconServo.setPosition(0);
+                                        tankDrive(0.3, 0);
+                                        break;
+                                }
                                 scoreBeacon();
                                 iLoop++;
                             } else {
@@ -264,6 +283,14 @@ public class RED_AutonomousProgramLeaguePlay_V4 extends OpMode {
                         }
                         break;
                     case 2:
+                        telemetry.addData("Case", scoreBeaconsStep);
+                        boolean moveToNext = testNavigator.rotateToAngle(90, this);
+                        telemetry.addData("rotateToAngle", moveToNext);
+                        if (moveToNext) {
+                            scoreBeaconsStep++;
+                        }
+                        break;
+                    case 3:
                         testNavigator.forceNextMovement();
                         mainProgramStep++;
                         break;
@@ -283,25 +310,26 @@ public class RED_AutonomousProgramLeaguePlay_V4 extends OpMode {
         if (beaconColorSensor.red() > beaconColorSensor.blue() && beaconColorSensor.red() > beaconColorSensor.green()) {
             DIM.setLED(1, true);           //Red ON
             DIM.setLED(0, false);          //Blue OFF
-            leftBeaconServo.setPosition(0);
-            rightBeaconServo.setPosition(1);
             telemetry.addData("Beacon", "RED");
             return 1;
         } else if (beaconColorSensor.blue() > beaconColorSensor.red() && beaconColorSensor.blue() > beaconColorSensor.green()) {
             DIM.setLED(1, false);          //Red OFF
             DIM.setLED(0, true);           //Blue ON
-            leftBeaconServo.setPosition(1);
-            rightBeaconServo.setPosition(0);
             telemetry.addData("Beacon", "BLUE");
             return 2;
         } else {
             DIM.setLED(1, false);           //Red OFF
             DIM.setLED(0, false);           //Blue OFF
-            leftBeaconServo.setPosition(0);
-            rightBeaconServo.setPosition(0);
             telemetry.addData("Beacon", "Not Detected");
             return 0;
         }
+    }
+
+    private void tankDrive(double left, double right) {
+        leftFront.setPower(left);
+        leftBack.setPower(left);
+        rightFront.setPower(right);
+        rightBack.setPower(right);
     }
 
     private void lineFollow() {
@@ -314,10 +342,7 @@ public class RED_AutonomousProgramLeaguePlay_V4 extends OpMode {
         double rightOut = Range.clip(Tp + output, -0.5, 0.5);
 
         telemetry.addData("Motor output", "%1$s, %2$s", leftOut, rightOut);
-        leftFront.setPower(leftOut);
-        leftBack.setPower(leftOut);
-        rightFront.setPower(rightOut);
-        rightBack.setPower(rightOut);
+        tankDrive(leftOut, rightOut);
         preError = error;
     }
 
