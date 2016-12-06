@@ -5,7 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Servo;
 
-@TeleOp(name = "TeleOp")
+@TeleOp(name = "MecanumDrive")
 public class MecanumDrive extends OpMode {
     DcMotor rightFront;
     DcMotor rightBack;
@@ -117,5 +117,16 @@ public class MecanumDrive extends OpMode {
 
         lastX = gamepad1.x;
         lastY = gamepad2.y;
+
+        if(gamepad2.dpad_left){
+            collectionMotor.setPower(.25);
+        } else if(gamepad2.dpad_right) {
+            collectionMotor.setPower(-.25);
+
+        } else {
+            collectionMotor.setPower(0);
+        }
+
+        }
     }
-}
+
