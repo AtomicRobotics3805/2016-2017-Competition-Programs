@@ -14,6 +14,7 @@ public class MecanumDrive extends OpMode {
     DcMotor launcher;
     DcMotor liftLeft;
     DcMotor liftRight;
+    DcMotor collectionMotor;
 
     Servo leftButtonServo;
     Servo rightButtonServo;
@@ -37,6 +38,7 @@ public class MecanumDrive extends OpMode {
         launcher = hardwareMap.dcMotor.get("SM");
         liftLeft = hardwareMap.dcMotor.get("RLM");
         liftRight = hardwareMap.dcMotor.get("LLM");
+        collectionMotor = hardwareMap.dcMotor.get("CM");
 
         liftLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         liftRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -92,8 +94,8 @@ public class MecanumDrive extends OpMode {
         }
 
         //Launcher
-        launcher.setPower(gamepad1.right_trigger-(gamepad1.left_trigger/10));
-
+        launcher.setPower(gamepad2.left_bumper ? 1 : gamepad2.right_bumper ? -0.2 : 0);
+        
         //Lift
         int liftPosMain = (liftLeft.getCurrentPosition() + liftRight.getCurrentPosition()) / 2;
         telemetry.addData("Lift value", liftPosMain);
