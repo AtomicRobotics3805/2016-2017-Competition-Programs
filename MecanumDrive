@@ -20,7 +20,8 @@ public class MecanumDrive extends OpMode {
     Servo rightButtonServo;
     Servo particleServo;
     Servo forkReleaseServo;
-
+    Servo collectionServo;
+    
     boolean lastX;
     boolean slowMode;
     double scaleFactor = 1;
@@ -51,6 +52,7 @@ public class MecanumDrive extends OpMode {
 
         particleServo = hardwareMap.servo.get("PS");
         forkReleaseServo = hardwareMap.servo.get("FRS");
+        collectionServo = hardwareMap.servo.get("CS");
 
         leftButtonServo.setDirection(Servo.Direction.REVERSE);
 
@@ -95,7 +97,7 @@ public class MecanumDrive extends OpMode {
 
         //Launcher
         launcher.setPower(gamepad2.left_bumper ? 1 : gamepad2.right_bumper ? -0.2 : 0);
-        
+
         //Lift
         int liftPosMain = (liftLeft.getCurrentPosition() + liftRight.getCurrentPosition()) / 2;
         telemetry.addData("Lift value", liftPosMain);
@@ -118,15 +120,18 @@ public class MecanumDrive extends OpMode {
         lastX = gamepad1.x;
         lastY = gamepad2.y;
 
-        if(gamepad2.dpad_left){
+        if(gamepad1.right_trigger >= .5){
             collectionMotor.setPower(.25);
-        } else if(gamepad2.dpad_right) {
+        } else if(gamepad1.left_trigger >= .5) {
             collectionMotor.setPower(-.25);
-
         } else {
             collectionMotor.setPower(0);
         }
-
+        telemetry.addData("Collection Value", collectionMotor.getCurrentPosition());
+        
+        if (gamepad1.a) {
+            collectionServo.setPosition(.5);
         }
-    }
 
+    }
+}
