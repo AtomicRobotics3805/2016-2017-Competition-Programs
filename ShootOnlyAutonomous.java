@@ -8,7 +8,6 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DeviceInterfaceModule;
 import com.qualcomm.robotcore.hardware.LightSensor;
 import com.qualcomm.robotcore.hardware.Servo;
-import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.teamcode.navigationMecanumPID;
 
@@ -40,9 +39,11 @@ public class ShootOnlyAutonomous extends OpMode {
     //2: Tp: the speed at which the robot goes when moving in the correct direction.
     //3: Either the wanted angle, or the goal distance in inches.
     private double[][] movementArray = new double[][]{
-            //_,______,______}
-            {1,   0.5,     6}, //Move forwards
-            {11,    0,     0}, //Shoot
+           //_,______,______}
+            {11,    0,     0}, //Guard ball
+            {1,   0.5,    24}, //Move forwards
+            {12,    0,     0}, //Shoot
+            {1,   0.5,    48}, //Move forwards and disrupt ball
             {10,    0,     0} //Stop all movements
     };
 
@@ -117,9 +118,36 @@ public class ShootOnlyAutonomous extends OpMode {
     @Override
     public void loop() {
         switch (mainProgramStep) {
-            case 0:
-                //Navigate
-                if (testNavigator.navigationType() == 11) {
+            case 0: //Hold ball before navigating
+                switch (particleReloadStep) {
+                    case 0: //Reverse shooter to guard ball
+                        if (shooterMotor.getCurrentPosition() < 850) { //If the shooter has not yet reached its goal position
+                            shooterMotor.setPower(-0.1);
+                        } else {
+                            //Stop motor for launcher
+                            shooterMotor.setPower(0);
+                            particleReloadStep++;
+                        }
+                        break;
+                    case 1: //Squeeze ball
+                        if (iLoop < 150) { //Loop for timing
+                            shooterMotor.setPower(-0.05);
+                            iLoop++;
+                        } else {
+                            iLoop = 0;
+                            particleReloadStep++;
+                        }
+                        break;
+                    case 2:
+                        collectionReleaseServo.setPosition(0.5);
+                        particleReloadStep = 0;
+                        testNavigator.forceNextMovement();
+                        mainProgramStep++;
+                        break;
+                }
+                break;
+            case 1: //Navigate
+                if (testNavigator.navigationType() == 12) {
                     mainProgramStep++;
                 } else {
                     telemetry.addData(">>", "Navigating");
@@ -127,10 +155,10 @@ public class ShootOnlyAutonomous extends OpMode {
                     testNavigator.loopNavigation();
                 }
                 break;
-            case 1: //Shoot
+            case 2: //Shoot
                 switch (shootStep) {
                     case 0: //Shoot first particle
-                        if (shooterMotor.getCurrentPosition() >= 1680) { //1680 is 1 rev of a NeverRest 60
+                        if (shooterMotor.getCurrentPosition() >= 1680) { //1680 is 1 rev of a NeverRest 60 relative to start position.
                             shooterMotor.setPower(0);
                             shootStep++;
                         } else {
@@ -192,14 +220,13 @@ public class ShootOnlyAutonomous extends OpMode {
                             shooterMotor.setPower(1);
                         }
                         break;
-                    case 3: //Release collection and move on to navigation
-                        collectionReleaseServo.setPosition(0.5);
+                    case 3: //Move on to navigation
                         testNavigator.forceNextMovement();
                         mainProgramStep++;
                         break;
                 }
                 break;
-            case 2: //Navigate
+            case 3: //Navigate
                 telemetry.addData(">>", "Navigating");
                 telemetry.addData("Type", testNavigator.navigationType());
                 testNavigator.loopNavigation();
