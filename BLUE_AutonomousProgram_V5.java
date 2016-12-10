@@ -40,7 +40,7 @@ public class BLUE_AutonomousProgram_V5 extends OpMode {
     //2: Tp: the speed at which the robot goes when moving in the correct direction.
     //3: Either the wanted angle, or the goal distance in inches.
     private double[][] movementArray = new double[][]{
-            //_,______,______}
+           //_,______,______}
             {11,    0,     0}, //Shoot
             {1,   0.5,     6}, //Move forwards TODO 2
             {4,  -0.5,   -48}, //Turn towards line at -48
@@ -250,17 +250,10 @@ public class BLUE_AutonomousProgram_V5 extends OpMode {
                         } else {
                             telemetry.addData(">>>", "Waiting for line");
                             testNavigator.tuneGains(0.3, 0.005, 0.04);
-                            testNavigator.moveNoStop(0, -0.25); //Move left at 25% power
+                            testNavigator.moveNoStop(0, -0.40); //Move left at 40% power
                         }
                         break;
-                    case 1:
-                        testNavigator.tuneGains(0.04, 0.00005, 0.05);
-                        if (testNavigator.rotateToAngle(-90, -0.25)) {
-                            scoreBeaconsStep++;
-                            testNavigator.tuneGains(0.035, 0.00001, 0.04);
-                        }
-                        break;
-                    case 2: //Follow line
+                    case 1: //Follow line
                         telemetry.addData("Case", scoreBeaconsStep);
                         double distanceIR = 27.86 * Math.pow(sharpIR.getVoltage(), -1.15);
                         if (distanceIR <= 20) { //TODO 11
@@ -294,7 +287,7 @@ public class BLUE_AutonomousProgram_V5 extends OpMode {
                             lineFollow();
                         }
                         break;
-                    case 3:
+                    case 2:
                         testNavigator.forceNextMovement();
                         mainProgramStep++;
                         break;
