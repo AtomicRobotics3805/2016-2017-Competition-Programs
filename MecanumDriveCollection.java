@@ -21,13 +21,18 @@ public class MecanumDriveCollection extends OpMode {
     Servo particleServo;
     Servo forkReleaseServo;
     Servo collectionReleaseServo;
+    Servo capBallGripLeftServo;
+    Servo capBallGripRightServo;
 
-    boolean lastX;
+    boolean lastX1;
     boolean slowMode;
     double scaleFactor = 1;
 
-    boolean lastY;
+    boolean lastY2;
     boolean liftOffsetEnabled;
+
+    boolean lastY1;
+    boolean holdCapBall;
 
 
     @Override
@@ -54,7 +59,11 @@ public class MecanumDriveCollection extends OpMode {
         forkReleaseServo = hardwareMap.servo.get("FRS");
         collectionReleaseServo = hardwareMap.servo.get("CRS");
 
+        capBallGripLeftServo = hardwareMap.servo.get("CHLS");
+        capBallGripRightServo = hardwareMap.servo.get("CHRS");
+
         leftButtonServo.setDirection(Servo.Direction.REVERSE);
+        capBallGripRightServo.setDirection(Servo.Direction.REVERSE);
 
         liftLeft.setDirection(DcMotor.Direction.REVERSE);
         rightFront.setDirection(DcMotor.Direction.REVERSE);
@@ -64,7 +73,7 @@ public class MecanumDriveCollection extends OpMode {
     @Override
     public void loop() {
         //Drive
-        if (gamepad1.x && !lastX) {
+        if (gamepad1.x && !lastX1) {
             slowMode = !slowMode;
         }
 
@@ -102,7 +111,7 @@ public class MecanumDriveCollection extends OpMode {
         int liftPosMain = (liftLeft.getCurrentPosition() + liftRight.getCurrentPosition()) / 2;
         telemetry.addData("Lift value", liftPosMain);
 
-        if (gamepad2.y && !lastY) {
+        if (gamepad2.y && !lastY2) {
             liftOffsetEnabled = !liftOffsetEnabled;
         }
 
@@ -123,7 +132,21 @@ public class MecanumDriveCollection extends OpMode {
         //Collection
         collectionMotor.setPower((gamepad1.left_trigger - gamepad1.right_trigger) * 0.25);
 
-        lastX = gamepad1.x;
-        lastY = gamepad2.y;
+        //Cap ball top clamp
+        if (gamepad1.y && !lastY1) {
+            holdCapBall = !holdCapBall;
+        }
+        if (holdCapBall) {
+            //Values found using ServoTest.java
+            capBallGripLeftServo.setPosition(0.9496);
+            capBallGripRightServo.setPosition(0.9273);
+        } else {
+            capBallGripLeftServo.setPosition(0.0841);
+            capBallGripRightServo.setPosition(0.0839);
+        }
+
+        lastX1 = gamepad1.x;
+        lastY2 = gamepad2.y;
+        lastY1 = gamepad1.y;
     }
 }
