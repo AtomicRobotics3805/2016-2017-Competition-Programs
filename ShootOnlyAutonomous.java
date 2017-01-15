@@ -41,7 +41,8 @@ public class ShootOnlyAutonomous extends OpMode {
     private double[][] movementArray = new double[][]{
            //_,______,______}
             {11,    0,     0}, //Guard ball
-            {1,   0.5,    24}, //Move forwards
+            {1,   0.5,    18}, //Move forwards
+            {1,  0.05,     3},
             {12,    0,     0}, //Shoot
             {1,   0.5,    48}, //Move forwards and disrupt ball
             {10,    0,     0} //Stop all movements
@@ -121,7 +122,7 @@ public class ShootOnlyAutonomous extends OpMode {
             case 0: //Hold ball before navigating
                 switch (particleReloadStep) {
                     case 0: //Reverse shooter to guard ball
-                        if (shooterMotor.getCurrentPosition() < 850) { //If the shooter has not yet reached its goal position
+                        if (shooterMotor.getCurrentPosition() > -850) { //If the shooter has not yet reached its goal position
                             shooterMotor.setPower(-0.1);
                         } else {
                             //Stop motor for launcher

@@ -9,13 +9,12 @@ import com.qualcomm.robotcore.hardware.DeviceInterfaceModule;
 import com.qualcomm.robotcore.hardware.LightSensor;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
-
 import org.firstinspires.ftc.teamcode.navigationMecanumPID;
 
 
-@Autonomous(name = "RED")
+@Autonomous(name = "BLUE")
 //@Disabled
-public class RED_AutonomousProgram_V6 extends OpMode {
+public class BLUE_AutonomousProgram_V6 extends OpMode {
     private navigationMecanumPID testNavigator;
     private DcMotor rightFront;
     private DcMotor rightBack;
@@ -44,13 +43,13 @@ public class RED_AutonomousProgram_V6 extends OpMode {
            //_,______,______}
             {11,    0,     0}, //Shoot
             {1,  0.75,     6}, //Move forwards 6 inches
-            {3,  0.75,    25}, //Turn towards beacons at 25
+            {4, -0.75,   -25}, //Turn towards beacons at 25
             {1,  0.75,    48}, //Move forwards 4 feet 6 inches (48)
-            {3,  0.75,    90}, //Align parallel with lines (90)
+            {4, -0.75,   -90}, //Align parallel with lines (90)
             {1,  0.25,     4}, //Move forwards 4 inches to straighten out
             {12,    0,     0}, //Score first beacon
-            {2, -0.75,   -12}, //Back up 6 inches
-            {5,     1,     6}, //Slide over to move the light sensor away form the line TODO change PID values for this strafe
+            {2, -0.75,    -6}, //Back up 6 inches
+            {6,    -1,   -12}, //Slide over to move the light sensor away form the line TODO change PID values for this strafe
             {13,    0,     0}, //Slide and score second beacon
             {10,    0,     0}  //Stop all movements
     };
@@ -254,7 +253,7 @@ public class RED_AutonomousProgram_V6 extends OpMode {
                         } else {
                             telemetry.addData(">>>", "Waiting for line");
                             testNavigator.tuneGains(0.02, 0.00002, 0.008);
-                            testNavigator.moveNoStop(wallFollow(distSetPoint), -0.5); //Move left at 50% power while maintaining a 25 cm distance from the wall
+                            testNavigator.moveNoStop(wallFollow(distSetPoint), 0.5); //Move right at 50% power while maintaining a 25 cm distance from the wall
                         }
                         break;
                     case 2:
@@ -264,7 +263,7 @@ public class RED_AutonomousProgram_V6 extends OpMode {
                             colorVal = getBeaconColor();
                             scoreBeaconsStep++;
                         } else {
-                            lineFollow(true);
+                            lineFollow(false);
                         }
                         break;
                     case 3:
@@ -279,13 +278,13 @@ public class RED_AutonomousProgram_V6 extends OpMode {
                                     break;
                                 case 1:
                                     telemetry.addData(">>>", "RED");
-                                    leftBeaconServo.setPosition(0);
-                                    rightBeaconServo.setPosition(1);
+                                    leftBeaconServo.setPosition(1);
+                                    rightBeaconServo.setPosition(0);
                                     break;
                                 case 2:
                                     telemetry.addData(">>>", "BLUE");
-                                    leftBeaconServo.setPosition(1);
-                                    rightBeaconServo.setPosition(0);
+                                    leftBeaconServo.setPosition(0);
+                                    rightBeaconServo.setPosition(1);
                                     break;
                             }
                             iLoop++;
@@ -297,7 +296,7 @@ public class RED_AutonomousProgram_V6 extends OpMode {
                     case 4:
                         if (iLoop < 150) {
                             telemetry.addData(">>", "Following line");
-                            lineFollow(true);
+                            lineFollow(false);
                             iLoop++;
                         } else {
                             leftBeaconServo.setPosition(0);
@@ -344,7 +343,7 @@ public class RED_AutonomousProgram_V6 extends OpMode {
                         } else {
                             telemetry.addData(">>>", "Waiting for line");
                             testNavigator.tuneGains(0.02, 0.00002, 0.008);
-                            testNavigator.moveNoStop(wallFollow(distSetPoint), 1); //Move right at 100% power while maintaining a 25 cm distance from the wall
+                            testNavigator.moveNoStop(wallFollow(distSetPoint), -1); //Move left at 100% power while maintaining a 25 cm distance from the wall
                         }
                         break;
                     case 2:
@@ -369,13 +368,13 @@ public class RED_AutonomousProgram_V6 extends OpMode {
                                     break;
                                 case 1:
                                     telemetry.addData(">>>", "RED");
-                                    leftBeaconServo.setPosition(0);
-                                    rightBeaconServo.setPosition(1);
+                                    leftBeaconServo.setPosition(1);
+                                    rightBeaconServo.setPosition(0);
                                     break;
                                 case 2:
                                     telemetry.addData(">>>", "BLUE");
-                                    leftBeaconServo.setPosition(1);
-                                    rightBeaconServo.setPosition(0);
+                                    leftBeaconServo.setPosition(0);
+                                    rightBeaconServo.setPosition(1);
                                     break;
                             }
                             iLoop++;
@@ -451,7 +450,7 @@ public class RED_AutonomousProgram_V6 extends OpMode {
         double error = lineLightSensor.getLightDetected() - setPoint;
         integral += error;
         double derivative = error - preError;
-        double output = (Kp * error) + (Ki * integral) + (Kd * derivative) * (onRightSide ? 1 : -1);
+        double output = ((Kp * error) + (Ki * integral) + (Kd * derivative)) * (onRightSide ? 1 : -1);
 
         double leftOut = Range.clip(Tp + output, -0.5, 0.5);
         double rightOut = Range.clip(Tp - output, -0.5, 0.5);
