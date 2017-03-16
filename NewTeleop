@@ -38,8 +38,8 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 
-@TeleOp(name="NewTeleopCollection")
-public class NewWorldsTeleop extends OpMode
+@TeleOp(name="NewTeleop")
+public class NewTeleop extends OpMode
 {
 
     DcMotor leftFrontMotor;
